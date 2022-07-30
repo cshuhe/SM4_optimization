@@ -1,0 +1,63 @@
+
+ #include "SM4.h"
+#include<iostream>
+#include<thread>
+#include <windows.h>
+#include <cstdlib> 
+#include <ctime>
+using namespace std;
+#define N 4096
+class TimeCounter {
+public:
+	TimeCounter(void) {
+		QueryPerformanceFrequency(&CPUClock);
+	}
+	double timeInterval;
+private:
+	LARGE_INTEGER startTime, endTime, CPUClock;
+
+public:
+	void start() {
+		QueryPerformanceCounter(&startTime);
+	}
+	void end() {
+		QueryPerformanceCounter(&endTime);
+		timeInterval = 1e3 * ((double)endTime.QuadPart - (double)startTime.QuadPart) / (double)CPUClock.QuadPart;
+		//ms
+	}
+};
+void random_char_generator(unsigned char str[16]) {
+	unsigned char r = 0, l = 255;
+	srand(time(0));
+	for (int i = 0; i < 16; i++) {
+		str[i] = (rand() % (r - l + 1) + l);
+	}
+}
+void init_set(unsigned char set[256][16]) {
+	for (int i = 0; i < 256; i += 4) {
+		random_char_generator(set[i]);
+		random_char_generator(set[i + 1]);
+		random_char_generator(set[i + 2]);
+		random_char_generator(set[i + 3]);
+	}
+}
+
+int main() {
+	unsigned char key_set[N][16], plain_set[N][16], cipher_set[N][16];
+	init_set(key_set); init_set(plain_set);
+	TimeCounter Timer1, Timer2;
+	
+	Timer1.start();
+	for (int i = 0; i < N; i++) {
+		SM4_Encrypt(key_set[i], plain_set[i], cipher_set[i]);
+	}
+	Timer1.end();
+	cout << "Enc：" << Timer1.timeInterval << "ms" << endl;
+
+	Timer2.start();
+	for (int j = 0; j < N; j++) {
+		SM4_Decrypt(key_set[j], cipher_set[j], plain_set[j]);
+	}
+	Timer2.end();
+	cout << "Dec：" << Timer2.timeInterval << "ms" << endl;
+}
